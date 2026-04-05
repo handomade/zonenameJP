@@ -84,18 +84,19 @@ local function getRegionIDByZoneID(zoneID)
     return nil
 end
 
-local function onZoneChange()
-    local currentZoneID = AshitaCore:GetMemoryManager():GetParty():GetMemberZone(0)
-    local currentZoneName = encoding:ShiftJIS_To_UTF8(AshitaCore:GetResourceManager():GetString('zones.names', currentZoneID), true)  -- Get the current zone name
-    local regionID = getRegionIDByZoneID(currentZoneID)  -- Get the region ID based on the zone ID
+local function onZoneChange(currentZoneId)
+    if currentZoneId == nil then
+        currentZoneId = AshitaCore:GetMemoryManager():GetParty():GetMemberZone(0)
+    end
+    local currentZoneName = encoding:ShiftJIS_To_UTF8(AshitaCore:GetResourceManager():GetString('zones.names', currentZoneId), true)  -- Get the current zone name
+    local regionID = getRegionIDByZoneID(currentZoneId)  -- Get the region ID based on the zone ID
     local currentRegionName = getRegionNameById(regionID)  -- Get the region name based on the region ID
     if currentRegionName then
         zonename.visible = true
-
         zonename.zone_name_text:set_text(currentZoneName)
         zonename.region_name_text:set_text(currentRegionName)
     else
-        print(chat.header(addon.name):append(chat.error('Unrecognised region. RegionZones data may need to be updated. Region ID: "%s", Zone ID: "%s"'):format(regionID, currentZoneID)))
+        print(chat.header(addon.name):append(chat.error('Unrecognised region. RegionZones data may need to be updated. Region ID: "%s", Zone ID: "%s"'):format(regionID, currentZoneId)))
     end
 end
 
@@ -190,8 +191,8 @@ ashita.events.register('packet_in', 'zonename_packet_in', function(event)
     if event.id == 0x0A then  -- Check if it's a zone change packet
         local moghouse = struct.unpack('b', event.data, 0x80 + 1)
         if moghouse ~= 1 then
-            coroutine.sleep(1)
-            onZoneChange()
+            local zone = struct.unpack('H', event.data, 0x30 + 1);
+            onZoneChange(zone)
         end
     end
 end)
