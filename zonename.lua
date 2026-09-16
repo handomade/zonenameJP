@@ -4,8 +4,8 @@
 
 -- Define addon information
 addon.name = 'zonename'
-addon.author = 'Xenonsmurf. Japanese support and other improvements by onimitch.'
-addon.version = '2.3'
+addon.author = 'Hando'
+addon.version = '2.3h'
 addon.desc = 'Displays the zone and region name for a short time while changing zones.'
 addon.link = 'https://github.com/onimitch/ffxi-zonename'
 
@@ -40,7 +40,7 @@ local zonename = {
         zone_name = {
             font_alignment = gdi.Alignment.Center,
             font_color = 0xFFFFD700,
-            font_family = 'Calibri', -- This could be Arial but we need to use a font that is most likely installed by default
+            font_family = 'Meiryo',
             font_flags = gdi.FontFlags.Bold,
             font_height = 50,
             outline_color = 0xFF0041AB,
@@ -51,7 +51,7 @@ local zonename = {
         region_name = {
             font_alignment = gdi.Alignment.Center,
             font_color = 0xFFFFD700,
-            font_family = 'Calibri', -- This could be Arial but we need to use a font that is most likely installed by default
+            font_family = 'Meiryo',
             font_flags = gdi.FontFlags.Bold,
             font_height = 20,
             outline_color = 0xFF0041AB,
@@ -61,6 +61,49 @@ local zonename = {
         },
     },
 }
+
+-- ashita=0 follows PlayOnline; 1=Japanese; 2=English. PlayOnline 0=Japanese.
+local function isJapanese()
+    local cfg = AshitaCore:GetConfigurationManager()
+    local ashitaLang = cfg:GetInt32('boot', 'ashita.language', 'ashita', 2)
+    if ashitaLang == 1 then
+        return true
+    end
+    if ashitaLang == 2 then
+        return false
+    end
+    return cfg:GetInt32('boot', 'ashita.language', 'playonline', 2) == 0
+end
+
+local function parseColor(value, fallback)
+    if type(value) == 'number' then
+        return value
+    end
+    if type(value) ~= 'string' then
+        return fallback
+    end
+    local s = value:gsub('%s+', ''):gsub('^#', '')
+    if s:sub(1, 2):lower() == '0x' then
+        s = s:sub(3)
+    end
+    if #s == 6 then
+        s = 'FF' .. s
+    end
+    if #s ~= 8 then
+        return fallback
+    end
+    return tonumber(s, 16) or fallback
+end
+
+local function pickJapaneseFont()
+    local candidates = { 'Meiryo', 'Yu Gothic', 'MS Gothic', 'Yu Gothic UI', 'Meiryo UI' }
+    for _, name in ipairs(candidates) do
+        if gdi:get_font_available(name) then
+            return name
+        end
+    end
+    return 'Arial'
+end
 
 -- Function to get the region name by region ID
 local function getRegionNameById(id)
@@ -88,7 +131,20 @@ local function onZoneChange(currentZoneId)
     if currentZoneId == nil then
         currentZoneId = AshitaCore:GetMemoryManager():GetParty():GetMemberZone(0)
     end
-    local currentZoneName = encoding:ShiftJIS_To_UTF8(AshitaCore:GetResourceManager():GetString('zones.names', currentZoneId), true)  -- Get the current zone name
+    local rm = AshitaCore:GetResourceManager()
+    local rawName
+    if zonename.lang_id == 'ja' then
+        local ok, jpName = pcall(function()
+            return rm:GetString('zones.names', currentZoneId, 1)
+        end)
+        if ok and type(jpName) == 'string' and jpName ~= '' then
+            rawName = jpName
+        end
+    end
+    if rawName == nil then
+        rawName = rm:GetString('zones.names', currentZoneId)
+    end
+    local currentZoneName = encoding:ShiftJIS_To_UTF8(rawName, true)
     local regionID = getRegionIDByZoneID(currentZoneId)  -- Get the region ID based on the zone ID
     local currentRegionName = getRegionNameById(regionID)  -- Get the region name based on the region ID
     if currentRegionName then
@@ -140,8 +196,21 @@ local function initialise()
         gdi:destroy_object(zonename.region_name_text)
     end
 
-    zonename.zone_name_text = gdi:create_object(zonename.settings.zone_name)  -- Create a font object for zone name display
-    zonename.region_name_text = gdi:create_object(zonename.settings.region_name)  -- Create a font object for region name display
+    local function copyFontSettings(src)
+        local dest = {}
+        for k, v in pairs(src) do
+            dest[k] = v
+        end
+        dest.font_color = parseColor(src.font_color, 0xFFFFD700)
+        dest.outline_color = parseColor(src.outline_color, 0xFF0041AB)
+        return dest
+    end
+
+    local zoneSettings = copyFontSettings(zonename.settings.zone_name)
+    local regionSettings = copyFontSettings(zonename.settings.region_name)
+
+    zonename.zone_name_text = gdi:create_object(zoneSettings)
+    zonename.region_name_text = gdi:create_object(regionSettings)
 
     -- Check if font is available, otherwise it won't render
     local zone_font_family = zonename.settings.zone_name.font_family
@@ -163,13 +232,17 @@ end
 
 -- Register events to load and unload the addon
 ashita.events.register('load', 'zonename_load', function()
-    zonename.settings = settings.load(zonename.defaults)  -- Load settings with default values
+    zonename.settings = settings.load(zonename.defaults)
 
-    -- Get language
-    local lang = AshitaCore:GetConfigurationManager():GetInt32('boot', 'ashita.language', 'playonline', 2)
-    zonename.lang_id = 'en'
-    if lang == 1 then
-        zonename.lang_id = 'ja'
+    zonename.lang_id = isJapanese() and 'ja' or 'en'
+    if zonename.lang_id == 'ja' then
+        local jpFont = pickJapaneseFont()
+        if zonename.settings.zone_name.font_family == 'Calibri' or zonename.settings.zone_name.font_family == 'Century Schoolbook' then
+            zonename.settings.zone_name.font_family = jpFont
+        end
+        if zonename.settings.region_name.font_family == 'Calibri' or zonename.settings.region_name.font_family == 'Century Schoolbook' then
+            zonename.settings.region_name.font_family = jpFont
+        end
     end
 
     initialise()
