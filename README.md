@@ -9,6 +9,22 @@ Ashita v4 向けアドオンです。ゾーン移動時にゾーン名とリー�
 - 作者: **Hando**　バージョン: **2.3h**
 - Ashita または PlayOnline の言語が日本語のとき、地名を日本語で表示します。
 
+## 経緯
+
+Windower の zonename（sylandro）を Ashita v4 に移植したのが Xenonsmurf 版です。リージョン名は英語（`region.en`）だけで、日本語切り替えはありません。CatsEyeXI クライアントに同梱されていたのも、この Xenonsmurf 版でした。
+
+その後 [onimitch/ffxi-zonename](https://github.com/onimitch/ffxi-zonename) が、同じ系統を GdiFonts 描画・`settings.lua`・`/zonename reload` 付きで整備し、**日本語表示そのものはすでに入っています**（`regions.lua` の `ja`、ゾーン名の Shift-JIS → UTF-8）。README に大きく書いていないだけで、仕組みはあります。
+
+ただし言語判定が次のようになっていました。
+
+```lua
+playonline == 1 なら日本語
+```
+
+Ashita の PlayOnline 言語は **0 = 日本語、1 = 英語（NA）** です。CatsEye の起動設定は `playonline=0` / `ashita=0`（Ashita 側は PlayOnline に追随）なので、onimitch 本体をそのまま入れても英語のままになります。日本語化できるのに、判定が Ashita の番号とずれている、という状態でした。
+
+この **zonenameJP** はその判定を直し、Ashita の `ashita.language` と PlayOnline の両方を見ます。あわせて設定の書き方と色の 16 進指定を README にまとめ、日本語向けの既定フォントを Meiryo 系にしています。
+
 ![Example](https://github.com/onimitch/ffxi-zonename/blob/main/Example.png "Example")
 
 ## インストール
