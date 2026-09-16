@@ -7,7 +7,7 @@ addon.name = 'zonename'
 addon.author = 'Hando'
 addon.version = '2.3h'
 addon.desc = 'Displays the zone and region name for a short time while changing zones.'
-addon.link = 'https://github.com/onimitch/ffxi-zonename'
+addon.link = 'https://github.com/handomade/zonenameJP'
 
 -- Import necessary modules and libraries
 require('common')  -- Import a common utility module

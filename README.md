@@ -33,7 +33,7 @@ Ashita の PlayOnline 言語は **0 = 日本語、1 = 英語（NA）** です。
 2. `Ashita/addons` にコピーします。`gdifonts` サブモジュールも含めてください。
 
 ```
-git clone --recurse-submodules <このリポジトリの URL>
+git clone --recurse-submodules https://github.com/handomade/zonenameJP.git
 ```
 
 すでにクローン済みなら:
