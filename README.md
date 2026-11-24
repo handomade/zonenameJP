@@ -6,8 +6,9 @@ Ashita v4 向けアドオンです。ゾーン移動時にゾーン名とリー�
 
 - ゲーム内のアドオン名 / フォルダ名 / コマンドは **zonename** のままです。
 - このリポジトリ名は **zonenameJP** です。
-- 作者: **Hando**　バージョン: **2.3h**
-- Ashita または PlayOnline の言語が日本語のとき、地名を日本語で表示します。
+- 作者: **Hando**　バージョン: **2.4h**
+- Ashita または Vanacore の言語が日本語のとき、ゾーン名とリージョン名を日本語で表示します。
+- 既定の見た目は白文字・黒縁です。
 
 ## 経緯
 
@@ -24,6 +25,10 @@ playonline == 1 なら日本語
 Ashita の PlayOnline 言語は **0 = 日本語、1 = 英語（NA）** です。CatsEye の起動設定は `playonline=0` / `ashita=0`（Ashita 側は PlayOnline に追随）なので、onimitch 本体をそのまま入れても英語のままになります。日本語化できるのに、判定が Ashita の番号とずれている、という状態でした。
 
 この **zonenameJP** はその判定を直し、Ashita の `ashita.language` と PlayOnline の両方を見ます。あわせて設定の書き方と色の 16 進指定を README にまとめ、日本語向けの既定フォントを Meiryo 系にしています。
+
+Vanacore ではさらに番号が違います。`vanacore.ini` の `[language] playonline=1` が日本語、`2` が英語です。2.4h からは Vanacore のこの値も見ます。
+
+ゾーン名は英語クライアントの DAT に日本語が無いことが多いので、2.4h で `zone_names.lua`（Windower Resources 由来の en/ja）を同梱しました。ファイル名を `zones.lua` にしないのは、Vanacore が同名の英語ゲームデータを先に読み込むためです。
 
 ![Example](https://github.com/onimitch/ffxi-zonename/blob/main/Example.png "Example")
 
@@ -94,7 +99,7 @@ settings["zone_name"] = T{ };
 settings["zone_name"]["font_family"] = "Meiryo";
 settings["zone_name"]["font_height"] = 50;
 settings["zone_name"]["font_flags"] = 1;          -- 1 = Bold
-settings["zone_name"]["font_color"] = 0xFFFFD700; -- 金
+settings["zone_name"]["font_color"] = 0xFFFFFFFF; -- 白
 settings["zone_name"]["outline_color"] = 0xFF000000;
 settings["zone_name"]["outline_width"] = 2;
 settings["zone_name"]["position_x"] = 1280;
@@ -104,7 +109,7 @@ settings["region_name"] = T{ };
 settings["region_name"]["font_family"] = "Meiryo";
 settings["region_name"]["font_height"] = 20;
 settings["region_name"]["font_flags"] = 1;
-settings["region_name"]["font_color"] = 0xFFFFD700;
+settings["region_name"]["font_color"] = 0xFFFFFFFF;
 settings["region_name"]["outline_color"] = 0xFF000000;
 settings["region_name"]["outline_width"] = 2;
 settings["region_name"]["position_x"] = 1280;
@@ -131,7 +136,7 @@ return settings;
 | `font_family` | Windows フォント名 | `"Meiryo"` / `"Yu Gothic"` / `"MS Gothic"` |
 | `font_height` | 文字サイズ | ゾーン `50`、リージョン `20` |
 | `font_flags` | `0` 通常 / `1` 太字 / `2` 斜体 / 足し算可（太字+斜体=`3`） | `1` |
-| `font_color` | 文字色 | `0xFFFFD700` |
+| `font_color` | 文字色 | `0xFFFFFFFF`（白） |
 | `outline_color` | 縁の色 | `0xFF000000` |
 | `outline_width` | 縁の太さ。`0` でなし | `2` |
 | `position_x` / `position_y` | 画面上の位置 | |
@@ -157,6 +162,21 @@ return settings;
 
 ## 表示について
 
-- 日本語: ゾーン名はゲームリソース、リージョン名は `regions.lua` の `ja` です。
-- 英語: `en` を使います。
+- リージョン名は `regions.lua` の `en` / `ja` です。
+- ゾーン名は `zone_names.lua` の `en` / `ja` です（Windower Resources 由来。日本語 DAT が無くても日本語が出ます）。ファイル名を `zones.lua` にしないのは、Vanacore が同名の英語ゲームデータを先に読み込むためです。
+- 言語判定は Ashita（`playonline=0` が日本語）と Vanacore（`playonline=1` が日本語）の両方を見ます。
 - 描画は GdiFonts（UTF-8）です。
+- 既定色は文字 `0xFFFFFFFF`（白）、縁 `0xFF000000`（黒）です。
+
+## 変更履歴
+
+### 2.4h
+
+- ゾーン名の日本語を `zone_names.lua` から表示（英語 DAT でも可）
+- Vanacore の `playonline=1` を日本語として判定
+- `require('zones')` をやめ、Vanacore の英語ゾーン表との衝突を回避
+- 既定色を白文字・黒縁に変更
+
+### 2.3h
+
+- Ashita の言語判定修正、16 進色、設定 README、作者 Hando のフォーク公開

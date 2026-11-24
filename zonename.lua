@@ -5,7 +5,7 @@
 -- Define addon information
 addon.name = 'zonename'
 addon.author = 'Hando'
-addon.version = '2.3h'
+addon.version = '2.4h'
 addon.desc = 'Displays the zone and region name for a short time while changing zones.'
 addon.link = 'https://github.com/handomade/zonenameJP'
 
@@ -32,6 +32,8 @@ local zonename = {
 
     regions = require("regions"),
     region_zones = require("regionZones"),
+    -- Not require('zones'): Vanacore already has a gamedata module of that name (English only).
+    zones = require("zone_names"),
 
     -- Settings defaults
     defaults = T{
@@ -39,22 +41,22 @@ local zonename = {
         fade_duration = 1,
         zone_name = {
             font_alignment = gdi.Alignment.Center,
-            font_color = 0xFFFFD700,
+            font_color = 0xFFFFFFFF,
             font_family = 'Meiryo',
             font_flags = gdi.FontFlags.Bold,
             font_height = 50,
-            outline_color = 0xFF0041AB,
+            outline_color = 0xFF000000,
             outline_width = 2,
             position_x = screenCenter.x,
             position_y = screenCenter.y - 340,
         },
         region_name = {
             font_alignment = gdi.Alignment.Center,
-            font_color = 0xFFFFD700,
+            font_color = 0xFFFFFFFF,
             font_family = 'Meiryo',
             font_flags = gdi.FontFlags.Bold,
             font_height = 20,
-            outline_color = 0xFF0041AB,
+            outline_color = 0xFF000000,
             outline_width = 2,
             position_x = screenCenter.x,
             position_y = screenCenter.y - 370,
@@ -62,10 +64,22 @@ local zonename = {
     },
 }
 
--- ashita=0 follows PlayOnline; 1=Japanese; 2=English. PlayOnline 0=Japanese.
+-- Ashita boot: ashita 1=JP 2=EN; playonline 0=JP 1=NA.
+-- Vanacore [language] playonline: 1=JP 2=EN (see vanacore.ini).
 local function isJapanese()
+    local vanaPol = nil
+    pcall(function()
+        vanaPol = tonumber(vana.config.get('language', 'playonline'))
+    end)
+    if vanaPol == 1 then
+        return true
+    end
+    if vanaPol == 2 then
+        return false
+    end
+
     local cfg = AshitaCore:GetConfigurationManager()
-    local ashitaLang = cfg:GetInt32('boot', 'ashita.language', 'ashita', 2)
+    local ashitaLang = cfg:GetInt32('boot', 'ashita.language', 'ashita', 0)
     if ashitaLang == 1 then
         return true
     end
@@ -131,20 +145,28 @@ local function onZoneChange(currentZoneId)
     if currentZoneId == nil then
         currentZoneId = AshitaCore:GetMemoryManager():GetParty():GetMemberZone(0)
     end
-    local rm = AshitaCore:GetResourceManager()
-    local rawName
-    if zonename.lang_id == 'ja' then
-        local ok, jpName = pcall(function()
-            return rm:GetString('zones.names', currentZoneId, 1)
-        end)
-        if ok and type(jpName) == 'string' and jpName ~= '' then
-            rawName = jpName
+    zonename.lang_id = isJapanese() and 'ja' or 'en'
+    local currentZoneName
+    local bundled = zonename.zones[currentZoneId]
+    if bundled ~= nil and bundled[zonename.lang_id] ~= nil and bundled[zonename.lang_id] ~= '' then
+        -- Table strings are UTF-8 (same as regions.lua).
+        currentZoneName = bundled[zonename.lang_id]
+    else
+        local rm = AshitaCore:GetResourceManager()
+        local rawName
+        if zonename.lang_id == 'ja' then
+            local ok, jpName = pcall(function()
+                return rm:GetString('zones.names', currentZoneId, 1)
+            end)
+            if ok and type(jpName) == 'string' and jpName ~= '' then
+                rawName = jpName
+            end
         end
+        if rawName == nil then
+            rawName = rm:GetString('zones.names', currentZoneId)
+        end
+        currentZoneName = encoding:ShiftJIS_To_UTF8(rawName, true)
     end
-    if rawName == nil then
-        rawName = rm:GetString('zones.names', currentZoneId)
-    end
-    local currentZoneName = encoding:ShiftJIS_To_UTF8(rawName, true)
     local regionID = getRegionIDByZoneID(currentZoneId)  -- Get the region ID based on the zone ID
     local currentRegionName = getRegionNameById(regionID)  -- Get the region name based on the region ID
     if currentRegionName then
@@ -201,8 +223,8 @@ local function initialise()
         for k, v in pairs(src) do
             dest[k] = v
         end
-        dest.font_color = parseColor(src.font_color, 0xFFFFD700)
-        dest.outline_color = parseColor(src.outline_color, 0xFF0041AB)
+        dest.font_color = parseColor(src.font_color, 0xFFFFFFFF)
+        dest.outline_color = parseColor(src.outline_color, 0xFF000000)
         return dest
     end
 
